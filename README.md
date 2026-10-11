@@ -1,7 +1,7 @@
 # Laboratorio 4 — Contenedores y Despliegue con Docker
 
 # Integrantes
-- Santiago 
+- Santiago Palacio Cardenas
 - Juan Esteban Mosquera Perea
 - Maria Paula Mosquera Alvarez
 
