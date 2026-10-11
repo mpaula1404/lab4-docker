@@ -58,5 +58,3 @@ docker pull mpaula14/miapp-docker:v1
 docker run -d -p 3000:3000 mpaula14/miapp-docker:v1
 ```
 
-Comandos útiles: `docker stop miapp`, `docker start miapp`, `docker rm -f miapp`, `docker rmi <imagen>`, `docker exec -it miapp sh`.
-
