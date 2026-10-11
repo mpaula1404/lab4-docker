@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora Docker · Lab 4</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --azul: #1d63ed;
+    --azul-claro: #4c8dff;
+    --fondo1: #0b1437;
+    --fondo2: #1a2b6d;
+    --tarjeta: rgba(255,255,255,0.08);
+    --borde: rgba(255,255,255,0.15);
+    --texto: #eef2ff;
+    --suave: #a9b4d8;
+    --verde: #2ee6a6;
+    --rojo: #ff6b81;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Poppins', system-ui, sans-serif;
+    color: var(--texto);
+    min-height: 100vh;
+    background: radial-gradient(circle at 20% 20%, #2a46b8 0%, transparent 40%),
+                radial-gradient(circle at 80% 80%, #6b2ab8 0%, transparent 40%),
+                linear-gradient(135deg, var(--fondo1), var(--fondo2));
+    display: flex; flex-direction: column; align-items: center;
+    padding: 32px 16px;
+    overflow-x: hidden;
+  }
+  .burbuja { position: fixed; border-radius: 50%; background: rgba(255,255,255,0.05);
+    animation: flotar 12s ease-in-out infinite; z-index: 0; }
+  @keyframes flotar { 50% { transform: translateY(-40px); } }
+
+  header { text-align: center; margin-bottom: 24px; z-index: 1; }
+  .ballena { font-size: 64px; display: inline-block; animation: nadar 3s ease-in-out infinite; }
+  @keyframes nadar { 50% { transform: translateY(-8px) rotate(-4deg); } }
+  h1 { font-size: clamp(1.8rem, 5vw, 2.6rem); font-weight: 800; }
+  h1 span { color: var(--azul-claro); }
+  .subtitulo { color: var(--suave); margin-top: 4px; }
+
+  .estado { display: inline-flex; align-items: center; gap: 8px; margin-top: 14px;
+    padding: 6px 14px; border-radius: 999px; background: var(--tarjeta);
+    border: 1px solid var(--borde); font-size: 0.85rem; }
+  .punto { width: 10px; height: 10px; border-radius: 50%; background: var(--suave); }
+  .punto.ok { background: var(--verde); box-shadow: 0 0 10px var(--verde); animation: latido 1.5s infinite; }
+  .punto.error { background: var(--rojo); }
+  @keyframes latido { 50% { opacity: 0.4; } }
+
+  main { width: 100%; max-width: 520px; z-index: 1; }
+  .tarjeta { background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 24px;
+    padding: 28px; backdrop-filter: blur(14px); box-shadow: 0 20px 60px rgba(0,0,0,0.35); }
+
+  .numeros { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  label { font-size: 0.8rem; color: var(--suave); display: block; margin-bottom: 6px; }
+  input { width: 100%; padding: 14px; font-size: 1.4rem; font-family: inherit; font-weight: 600;
+    color: var(--texto); background: rgba(0,0,0,0.25); border: 2px solid transparent;
+    border-radius: 14px; outline: none; transition: border-color .2s; }
+  input:focus { border-color: var(--azul-claro); }
+
+  .operaciones { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 20px 0; }
+  .op { padding: 16px 0; font-size: 1.6rem; font-weight: 600; font-family: inherit; color: var(--texto);
+    background: rgba(255,255,255,0.06); border: 2px solid var(--borde); border-radius: 16px;
+    cursor: pointer; transition: transform .15s, background .2s, border-color .2s; }
+  .op:hover { transform: translateY(-3px); background: rgba(255,255,255,0.12); }
+  .op.activa { background: var(--azul); border-color: var(--azul-claro);
+    box-shadow: 0 8px 24px rgba(29,99,237,0.5); }
+
+  .calcular { width: 100%; padding: 16px; font-size: 1.1rem; font-weight: 600; font-family: inherit;
+    color: white; border: none; border-radius: 16px; cursor: pointer;
+    background: linear-gradient(90deg, var(--azul), #7b4dff);
+    transition: transform .15s, box-shadow .2s; }
+  .calcular:hover { transform: scale(1.02); box-shadow: 0 10px 30px rgba(123,77,255,0.5); }
+  .calcular:active { transform: scale(0.98); }
+
+  .resultado { margin-top: 22px; text-align: center; min-height: 92px; padding: 16px;
+    border-radius: 16px; background: rgba(0,0,0,0.25); }
+  .resultado .expr { color: var(--suave); font-size: 0.95rem; }
+  .resultado .valor { font-size: 2.4rem; font-weight: 800; color: var(--verde); word-break: break-all; }
+  .resultado .valor.error { font-size: 1.1rem; color: var(--rojo); padding-top: 12px; }
+  .pop { animation: pop .4s ease; }
+  @keyframes pop { 0% { transform: scale(0.6); opacity: 0; } 70% { transform: scale(1.1); } 100% { transform: scale(1); opacity: 1; } }
+
+  .historial { margin-top: 22px; }
+  .historial h2 { font-size: 1rem; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .historial button { background: none; border: none; color: var(--suave); cursor: pointer; font-family: inherit; }
+  .historial button:hover { color: var(--texto); }
+  ul { list-style: none; max-height: 180px; overflow-y: auto; }
+  li { display: flex; justify-content: space-between; padding: 10px 14px; margin-bottom: 6px;
+    border-radius: 12px; background: rgba(255,255,255,0.05); font-size: 0.95rem;
+    animation: entrar .3s ease; }
+  li b { color: var(--verde); }
+  @keyframes entrar { from { opacity: 0; transform: translateX(-12px); } }
+  .vacio { color: var(--suave); font-size: 0.9rem; text-align: center; padding: 8px; }
+
+  footer { margin-top: 24px; color: var(--suave); font-size: 0.8rem; text-align: center; z-index: 1; }
+  code { background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 6px; }
+</style>
+</head>
+<body>
+  <div class="burbuja" style="width:180px;height:180px;top:8%;left:5%"></div>
+  <div class="burbuja" style="width:120px;height:120px;bottom:10%;right:8%;animation-delay:-4s"></div>
+  <div class="burbuja" style="width:70px;height:70px;top:60%;left:12%;animation-delay:-8s"></div>
+
+  <header>
+    <div class="ballena">🐳</div>
+    <h1>Calculadora <span>Docker</span></h1>
+    <p class="subtitulo">Laboratorio 4 · UdeA 2026</p>
+    <div class="estado"><span class="punto" id="punto"></span><span id="estadoTexto">Conectando…</span></div>
+  </header>
+
+  <main>
+    <div class="tarjeta">
+      <div class="numeros">
+        <div><label for="a">Número A</label><input id="a" type="number" value="12" step="any"></div>
+        <div><label for="b">Número B</label><input id="b" type="number" value="4" step="any"></div>
+      </div>
+
+      <div class="operaciones">
+        <button class="op activa" data-op="sumar" title="Sumar">+</button>
+        <button class="op" data-op="restar" title="Restar">−</button>
+        <button class="op" data-op="multiplicar" title="Multiplicar">×</button>
+        <button class="op" data-op="dividir" title="Dividir">÷</button>
+      </div>
+
+      <button class="calcular" id="calcular">Calcular en el contenedor 🚀</button>
+
+      <div class="resultado" id="resultado">
+        <div class="expr">Elige una operación y presiona calcular</div>
+        <div class="valor">—</div>
+      </div>
+
+      <div class="historial">
+        <h2>Historial <button id="limpiar">Limpiar</button></h2>
+        <ul id="lista"><li class="vacio">Aún no hay operaciones</li></ul>
+      </div>
+    </div>
+  </main>
+
+  <footer>Respuestas servidas por el endpoint <code>/calcular</code> desde el contenedor <code id="host">…</code></footer>
+
+<script>
+  const simbolos = { sumar: '+', restar: '−', multiplicar: '×', dividir: '÷' };
+  let opActual = 'sumar';
+
+  document.querySelectorAll('.op').forEach(btn => btn.addEventListener('click', () => {
+    document.querySelectorAll('.op').forEach(b => b.classList.remove('activa'));
+    btn.classList.add('activa');
+    opActual = btn.dataset.op;
+    calcular();
+  }));
+
+  async function calcular() {
+    const a = document.getElementById('a').value;
+    const b = document.getElementById('b').value;
+    const caja = document.getElementById('resultado');
+    try {
+      const r = await fetch(`/calcular?op=${opActual}&a=${encodeURIComponent(a)}&b=${encodeURIComponent(b)}`);
+      const datos = await r.json();
+      const expr = `${a} ${simbolos[opActual]} ${b}`;
+      if (!r.ok) {
+        caja.innerHTML = `<div class="expr">${expr}</div><div class="valor error pop">⚠️ ${datos.error}</div>`;
+        return;
+      }
+      const valor = Number.isInteger(datos.resultado) ? datos.resultado : +datos.resultado.toFixed(6);
+      caja.innerHTML = `<div class="expr">${expr} =</div><div class="valor pop">${valor}</div>`;
+      agregarHistorial(expr, valor);
+    } catch {
+      caja.innerHTML = `<div class="expr"></div><div class="valor error pop">⚠️ No hay conexión con el contenedor</div>`;
+    }
+  }
+
+  function agregarHistorial(expr, valor) {
+    const lista = document.getElementById('lista');
+    lista.querySelector('.vacio')?.remove();
+    const li = document.createElement('li');
+    li.innerHTML = `<span>${expr}</span><b>${valor}</b>`;
+    lista.prepend(li);
+    while (lista.children.length > 10) lista.lastChild.remove();
+  }
+
+  document.getElementById('limpiar').addEventListener('click', () => {
+    document.getElementById('lista').innerHTML = '<li class="vacio">Aún no hay operaciones</li>';
+  });
+  document.getElementById('calcular').addEventListener('click', calcular);
+  document.querySelectorAll('input').forEach(i => i.addEventListener('keydown', e => e.key === 'Enter' && calcular()));
+
+  async function revisarEstado() {
+    const punto = document.getElementById('punto');
+    const texto = document.getElementById('estadoTexto');
+    try {
+      const datos = await (await fetch('/health')).json();
+      punto.className = 'punto ok';
+      texto.textContent = `Contenedor activo · ${datos.hostname}`;
+      document.getElementById('host').textContent = datos.hostname;
+    } catch {
+      punto.className = 'punto error';
+      texto.textContent = 'Contenedor sin conexión';
+    }
+  }
+  revisarEstado();
+  setInterval(revisarEstado, 5000);
+</script>
+</body>
+</html>
